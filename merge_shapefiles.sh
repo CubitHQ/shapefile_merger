@@ -40,6 +40,7 @@ mkdir -p $UNZIP_DIR
 # Unzip all shapefiles in the source directory
 echo "Unzipping shapefiles..."
 for zipfile in "$SOURCE_DIR"/*.zip; do
+    echo "Processing $zipfile"
     unzip -o "$zipfile" -d "$UNZIP_DIR"
 done
 
@@ -52,13 +53,18 @@ if [ ${#shapefiles[@]} -eq 0 ]; then
     exit 1
 fi
 
+# Remove existing output shapefile to avoid appending issues
+rm -f "$OUTPUT_SHAPEFILE"
+
 # Combine shapefiles using ogr2ogr
 echo "Combining shapefiles into $OUTPUT_SHAPEFILE..."
 first_file=${shapefiles[0]}
 ogr2ogr -f "ESRI Shapefile" "$OUTPUT_SHAPEFILE" "$first_file"
 
+# Append remaining shapefiles
 for shapefile in "${shapefiles[@]:1}"; do
-    ogr2ogr -f "ESRI Shapefile" -update -append "$OUTPUT_SHAPEFILE" "$shapefile" -nln combined
+    echo "Appending $shapefile to $OUTPUT_SHAPEFILE"
+    ogr2ogr -f "ESRI Shapefile" -update -append "$OUTPUT_SHAPEFILE" "$shapefile" -nln "$(basename "$OUTPUT_SHAPEFILE" .shp)"
 done
 
 echo "Combined shapefile created: $OUTPUT_SHAPEFILE"
